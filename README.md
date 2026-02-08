@@ -321,7 +321,7 @@ AI 可以產生互動式的視覺內容，例如圖表、流程圖等，透過 W
 
 ### 節省費用的建議
 - **日常問題用預設模型（Kimi K2.5）** — 速度快、費用低，大部分情境夠用
-- **只在需要時切換到更強的模型** — Claude Opus、GPT-4o 費用較高，複雜問題才用
+- **只在需要時切換到更強的模型** — Claude Opus、GPT-5 費用較高，複雜問題才用
 - **避免重複提問相同問題** — AI 會記住對話上下文，不需要每次都重新描述
 - **長文件先摘要再深入** — 先請 AI 摘要重點，再針對感興趣的部分追問
 
@@ -362,6 +362,104 @@ AI 可以產生互動式的視覺內容，例如圖表、流程圖等，透過 W
 ### 想要新增功能或其他 AI 模型？
 - 聯繫我們，我們可以幫你調整設定
 - 可新增的項目包括：更多 AI 模型、網路搜尋、語音模式、更多通訊平台（WhatsApp、Discord、LINE 等）
+
+---
+
+## 進階：透過 CLI 或 AI 工具管理你的服務
+
+如果你有使用 CLI 終端機、或 AI 編程工具（如 Cursor、Windsurf 等），可以直接透過 Zeabur API 管理你的 OpenClaw 服務。
+
+### 前置準備
+
+1. **取得你的 Zeabur API Token**
+   - 前往 [zeabur.com](https://zeabur.com) → Settings → API Token
+   - 產生一組 Token（格式為 `sk-xxxxx`）
+   - 這個 Token 可以讓你透過 API 管理你的所有 Zeabur 服務
+
+2. **安裝 Zeabur CLI**（可選）
+   ```bash
+   npm install -g zeabur
+   ```
+
+### 使用 Zeabur GraphQL API
+
+所有操作都透過 Zeabur 的 GraphQL API 進行：
+
+**API 端點：** `https://api.zeabur.com/graphql`
+
+**認證方式：** 在 HTTP Header 加入 `Authorization: Bearer <你的 Zeabur Token>`
+
+#### 查看服務狀態
+
+```bash
+curl -s -X POST https://api.zeabur.com/graphql \
+  -H "Authorization: Bearer <你的TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"query{projects{edges{node{_id name services{_id name status}}}}}"}'
+```
+
+#### 查看服務日誌
+
+```bash
+curl -s -X POST https://api.zeabur.com/graphql \
+  -H "Authorization: Bearer <你的TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"query{runtimeLogs(projectID:\"<PROJECT_ID>\",serviceID:\"<SERVICE_ID>\",environmentID:\"<ENV_ID>\"){message timestamp}}"}'
+```
+
+#### 重啟服務
+
+```bash
+curl -s -X POST https://api.zeabur.com/graphql \
+  -H "Authorization: Bearer <你的TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"mutation{restartService(serviceID:\"<SERVICE_ID>\",environmentID:\"<ENV_ID>\")}"}'
+```
+
+#### 更新環境變數
+
+```bash
+curl -s -X POST https://api.zeabur.com/graphql \
+  -H "Authorization: Bearer <你的TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"mutation($data: Map!){updateEnvironmentVariable(serviceID:\"<SERVICE_ID>\",environmentID:\"<ENV_ID>\",data:$data)}","variables":{"data":{"KEY_NAME":"NEW_VALUE"}}}'
+```
+
+### 常用 API 操作速查表
+
+| 操作 | 用途 |
+|------|------|
+| 列出專案 | 查看你所有的 Zeabur 專案和服務 |
+| 查看服務狀態 | 確認 OpenClaw 是否正常運行 |
+| 查看日誌 | 排查問題、確認 Bot 是否連線 |
+| 重啟服務 | 服務異常時重啟 |
+| 更新環境變數 | 更換 AI API Key、更新 Token 等 |
+
+### 在 Cursor / Windsurf 中使用
+
+如果你使用 AI 編程工具，可以把以下資訊提供給你的 AI 助手，讓它幫你操作：
+
+```
+Zeabur API 端點：https://api.zeabur.com/graphql
+認證方式：Bearer Token
+Token：<你的 Zeabur API Token>
+
+常用 GraphQL 操作：
+- 列出專案：query{projects{edges{node{_id name services{_id name status}}}}}
+- 查看服務狀態：query{service(_id:"<SERVICE_ID>"){name status}}
+- 查看日誌：query{runtimeLogs(projectID:"<PID>",serviceID:"<SID>",environmentID:"<EID>"){message timestamp}}
+- 重啟服務：mutation{restartService(serviceID:"<SID>",environmentID:"<EID>")}
+- 更新環境變數：mutation($data: Map!){updateEnvironmentVariable(serviceID:"<SID>",environmentID:"<EID>",data:$data)}
+```
+
+> **安全提醒：** Zeabur API Token 擁有你帳號的完整管理權限。請勿將 Token 分享給不信任的人或工具。如果你懷疑 Token 洩漏，請立即到 Zeabur 後台撤銷並重新產生。
+
+### 服務成功運行的判斷標準
+
+查看日誌時，出現以下訊息代表服務正常：
+- `[gateway] listening on ws://0.0.0.0:3000` — Gateway 已啟動
+- `[gateway] agent model: kimi-coding/k2p5` — AI 模型已載入
+- `[telegram] [default] starting provider` — Telegram Bot 已連線
 
 ---
 
