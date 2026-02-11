@@ -365,6 +365,44 @@ AI 可以產生互動式的視覺內容，例如圖表、流程圖等，透過 W
 
 ---
 
+## 客戶部署與除錯 SOP（標準版）
+
+以下是跨客戶都一致的標準設定，請勿任意變更：
+
+| 類別 | 標準設定 |
+|------|----------|
+| Gateway Port | `OPENCLAW_GATEWAY_PORT=3000` |
+| Gateway Bind | 啟動必帶 `--bind lan` |
+| Gateway Token | `OPENCLAW_GATEWAY_TOKEN` 至少 32 字元 |
+| Telegram DM 策略 | `allowlist`（不使用 `open`） |
+| Allowlist ID | `TELEGRAM_USER_ID` 必須是客戶本人數字 ID |
+| Telegram 啟動 Token | 優先使用 `${OPENCLAW_TELEGRAM_BOT_TOKEN:-$TELEGRAM_BOT_TOKEN}` |
+
+### 快速健康檢查（客戶反映「Bot 不回應」時）
+
+1. 檢查 Telegram Token 是否有效（`getMe`）。
+2. 檢查 webhook 狀態（`getWebhookInfo`，若採 long polling，`url` 應為空）。
+3. 檢查 OpenClaw logs 是否出現：
+   - `[telegram] [default] starting provider`
+   - `[gateway] listening on ws://0.0.0.0:3000`
+4. 若 logs 出現 `Telegram configured, not enabled yet` 或 `botToken: No such file or directory`：
+   - 重新套用部署（更新 env + 更新 start command + restart）
+   - `channels add` 使用 env token，不要依賴 `cat .../botToken`
+5. 若 logs 出現 `getUpdates conflict (409)`：
+   - 先 `deleteWebhook(drop_pending_updates=true)`，再重啟服務
+
+### Zeabur API 端點規則（重要）
+
+- 優先：`https://api.zeabur.com/graphql`
+- 若回 `403` 且含 `error code: 1010`：改用 `https://api.zeabur.cn/graphql`
+
+### Service ID 格式規則（重要）
+
+- Zeabur UI 常見 `service-xxxxxxxx` 格式
+- GraphQL `service(_id: "...")` 需要 raw `_id`（去掉 `service-` 前綴）
+
+---
+
 ## 進階：透過 CLI 或 AI 工具管理你的服務
 
 如果你有使用 CLI 終端機、或 AI 編程工具（如 Cursor、Windsurf 等），可以直接透過 Zeabur API 管理你的 OpenClaw 服務。
@@ -386,6 +424,7 @@ AI 可以產生互動式的視覺內容，例如圖表、流程圖等，透過 W
 所有操作都透過 Zeabur 的 GraphQL API 進行：
 
 **API 端點：** `https://api.zeabur.com/graphql`
+（若遇到 `403 error code: 1010`，改用 `https://api.zeabur.cn/graphql`）
 
 **認證方式：** 在 HTTP Header 加入 `Authorization: Bearer <你的 Zeabur Token>`
 
@@ -453,6 +492,7 @@ Token：<你的 Zeabur API Token>
 ```
 
 > **安全提醒：** Zeabur API Token 擁有你帳號的完整管理權限。請勿將 Token 分享給不信任的人或工具。如果你懷疑 Token 洩漏，請立即到 Zeabur 後台撤銷並重新產生。
+> **ID 提醒：** 若你拿到的是 `service-xxxx`，請先轉為 raw `_id` 再做 `service(_id:...)` 查詢。
 
 ### 服務成功運行的判斷標準
 
